@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     fs.writeFileSync(filepath, buffer);
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    return NextResponse.json({ url: `/api/img/${filename}` });
   } catch (e) {
     return NextResponse.json({ error: "Error al subir archivo" }, { status: 500 });
   }
