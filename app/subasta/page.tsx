@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getAllLotes, formatPrecio, ESTADO_CONFIG, type Lote } from "@/lib/lotes";
 
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -104,15 +105,17 @@ export default function SubastaPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <header className="text-center mb-14 animate-fadein" style={{ opacity: 0 }}>
-          <p className="text-xs tracking-[0.35em] uppercase mb-5" style={{ color: "#c8a96e" }}>
-            Resultados
-          </p>
-          <h1
-            className="text-5xl sm:text-6xl font-light tracking-[0.15em] uppercase mb-6"
-            style={{ fontFamily: "var(--font-playfair)", color: "#f0ede8" }}
-          >
-            Subasta
-          </h1>
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/logo.png"
+              alt="Logo Subasta"
+              width={260}
+              height={80}
+              className="object-contain"
+              style={{ maxHeight: 80 }}
+              priority
+            />
+          </div>
           <div className="flex items-center justify-center gap-4 mb-6">
             <div className="h-px w-16" style={{ backgroundColor: "rgba(200,169,110,0.3)" }} />
             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#c8a96e" }} />

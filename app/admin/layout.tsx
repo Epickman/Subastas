@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata = {
   title: "Admin — Subasta",
@@ -12,12 +13,15 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
         style={{ borderColor: "rgba(255,255,255,0.07)", backgroundColor: "#0d0d0d" }}
       >
         <div className="flex items-center gap-6">
-          <Link
-            href="/admin"
-            className="text-sm font-semibold tracking-widest uppercase"
-            style={{ fontFamily: "var(--font-playfair)", color: "#c8a96e" }}
-          >
-            Admin
+          <Link href="/admin">
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={100}
+              height={32}
+              className="object-contain"
+              style={{ maxHeight: 32 }}
+            />
           </Link>
           <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
           <Link href="/subasta" className="link-gold text-xs tracking-wider">
