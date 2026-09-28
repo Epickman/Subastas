@@ -1,26 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+
+  --color-gold: #c8a96e;
+  --color-gold-light: #e8d5a3;
+  --color-night: #080808;
+  --color-surface: #111111;
+  --color-surface-hover: #181818;
+  --color-rim: #1e1e1e;
+  --color-adjudicado: #5cba7a;
+  --color-subastado: #6ba3c8;
+  --color-sin-adjudicar: #7a7878;
+  --color-ink: #f0ede8;
+  --color-ink-muted: #8a8080;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: #080808;
+  color: #f0ede8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+}
+
+::selection {
+  background: rgba(200, 169, 110, 0.25);
+  color: #f0ede8;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080808;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 3px;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadein {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* Hover utilities for server components (no JS event handlers) */
+
+.card-lote {
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-lote:hover {
+  border-color: rgba(200, 169, 110, 0.35) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.card-lote .card-img img {
+  transition: transform 0.5s ease;
+}
+.card-lote:hover .card-img img {
+  transform: scale(1.05);
+}
+
+.btn-gold {
+  background-color: #c8a96e;
+  color: #080808;
+  transition: background-color 0.2s;
+}
+.btn-gold:hover:not(:disabled) {
+  background-color: #dbbf80;
+}
+.btn-gold:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.link-gold {
+  color: #8a8080;
+  transition: color 0.2s;
+}
+.link-gold:hover {
+  color: #c8a96e;
+}
+
+.link-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #8a8080;
+  transition: color 0.2s;
+  font-size: 0.875rem;
+}
+.link-back:hover {
+  color: #c8a96e;
+}
+
+.btn-back-full {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #c8c0b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s;
+}
+.btn-back-full:hover {
+  background-color: rgba(200, 169, 110, 0.1);
+  border-color: rgba(200, 169, 110, 0.3);
+  color: #c8a96e;
+}
+
+.btn-admin-edit {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #c8c0b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s;
+}
+.btn-admin-edit:hover {
+  background-color: rgba(200, 169, 110, 0.1);
+  color: #c8a96e;
+  border-color: rgba(200, 169, 110, 0.3);
+}
+
+.nav-logout {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #8a8080;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+.nav-logout:hover {
+  color: #e06060;
+}
+
+.btn-danger {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #8a8080;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s;
+}
+.btn-danger:hover {
+  background-color: rgba(224, 96, 96, 0.1);
+  color: #e06060;
+  border-color: rgba(224, 96, 96, 0.2);
+}
+
+/* Input focus ring for forms */
+.input-field {
+  background-color: #0a0a0a;
+  color: #f0ede8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.2s;
+}
+.input-field:focus {
+  outline: none;
+  border-color: rgba(200, 169, 110, 0.4);
 }
