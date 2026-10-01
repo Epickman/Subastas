@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LotePage(props: PageProps<"/subasta/[id]">) {
   const { id } = await props.params;
-  const lote = getLoteById(Number(id));
+  const lote = await getLoteById(Number(id));
   if (!lote) notFound();
 
   const cfg = ESTADO_CONFIG[lote.estado];

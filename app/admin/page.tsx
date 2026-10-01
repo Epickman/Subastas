@@ -5,8 +5,8 @@ import DeleteButton from "./DeleteButton";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminPage() {
-  const lotes = getAllLotes();
+export default async function AdminPage() {
+  const lotes = await getAllLotes();
 
   return (
     <div>

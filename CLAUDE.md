@@ -5,11 +5,13 @@
 ## Stack tecnológico
 
 - **Framework**: Next.js 16.3.6 (App Router, React 19)
-- **Base de datos**: SQLite vía `better-sqlite3` (archivo en `data/subasta.db`)
+- **Base de datos**: Postgres en Neon vía `@neondatabase/serverless` (env `DATABASE_URL`, provista por la integración de Vercel)
+- **Imágenes**: Vercel Blob público vía `@vercel/blob` (env `BLOB_READ_WRITE_TOKEN`)
+- **Hosting**: Vercel, proyecto `subastas`, deploy automático al pushear a `main`
 - **Estilos**: Tailwind CSS v4 + clases CSS personalizadas en `globals.css`
 - **Fuentes**: Playfair Display (serif, elegante) + Inter (sans-serif, UI)
 - **Tipado**: TypeScript 5
-- **Imágenes**: `next/image` con `unoptimized: true` en `next.config.ts`
+- `next/image` con `unoptimized: true` en `next.config.ts`
 
 ---
 
@@ -35,13 +37,13 @@ app/
   api/
     lotes/route.ts        → GET (todos) + POST (crear)
     lotes/[id]/route.ts   → GET + PUT + DELETE por id
-    upload/route.ts       → POST: sube imagen a public/uploads/
-    img/[filename]/route.ts → GET: sirve imágenes desde public/uploads/
+    upload/route.ts       → POST: sube imagen a Vercel Blob, devuelve URL pública
+    img/[filename]/route.ts → (legado, ya no se usa) servía imágenes desde disco
     auth/
       login/route.ts      → POST: valida contraseña, setea cookie HMAC
       logout/route.ts     → POST: borra cookie admin_token
 lib/
-  db.ts                   → Singleton de conexión SQLite, crea tabla lotes
+  db.ts                   → Cliente Neon lazy, crea tabla lotes si no existe
   lotes.ts                → CRUD, tipos, formatPrecio, ESTADO_CONFIG
 proxy.ts                  → Middleware de auth para rutas /admin/*
 ```
@@ -52,18 +54,18 @@ proxy.ts                  → Middleware de auth para rutas /admin/*
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| id | INTEGER PK AUTOINCREMENT | |
+| id | SERIAL PK | |
 | numero_lote | TEXT NOT NULL | Ordena como entero si es posible |
 | nombre | TEXT NOT NULL | |
 | descripcion | TEXT | Default '' |
-| imagen | TEXT | Ruta `/api/img/<uuid>.<ext>` |
+| imagen | TEXT | URL pública de Vercel Blob |
 | estado | TEXT | `adjudicado` / `subastado` / `sin_adjudicar` |
 | ganador | TEXT | Nombre del ganador |
-| precio_final | REAL | 0 si no adjudicado |
+| precio_final | DOUBLE PRECISION | 0 si no adjudicado |
 | created_at | TEXT | datetime localtime |
 | updated_at | TEXT | datetime localtime |
 
-El singleton de DB usa WAL mode para mejor concurrencia.
+Fechas guardadas como texto en hora de Buenos Aires. Las funciones de `lib/lotes.ts` son async.
 
 ---
 
@@ -78,9 +80,7 @@ El singleton de DB usa WAL mode para mejor concurrencia.
 
 ## Imágenes
 
-- Se suben vía `POST /api/upload` → se guardan en `public/uploads/<uuid>.<ext>`
-- Se sirven vía `GET /api/img/<filename>` con `Cache-Control: immutable, 1 año`
-- La ruta usa `path.basename()` para evitar path traversal
+- Se suben vía `POST /api/upload` a Vercel Blob en `lotes/<uuid>.<ext>` y se guarda la URL pública en el lote
 
 ---
 
@@ -118,6 +118,8 @@ sin_adjudicar → subastado → adjudicado
 
 ```bash
 cd Subastas
+# Requiere Node 22+ (en esta Mac: PATH=/opt/homebrew/opt/node/bin:$PATH)
+vercel env pull .env.local   # trae DATABASE_URL y BLOB_READ_WRITE_TOKEN
 npm run dev      # servidor de desarrollo
 npm run build    # build de producción
 npm run start    # servidor de producción
@@ -140,3 +142,8 @@ Crear un `.env.local` con valores seguros antes de poner en producción.
 
 - Análisis completo del proyecto: stack, estructura, DB, auth, estilos y flujos
 - Creación de este `CLAUDE.md` con documentación para futuras sesiones
+
+## Registro de trabajo (sesión 2026-10-01, deploy)
+
+- Migración de SQLite + disco a Neon Postgres + Vercel Blob para poder correr en Vercel
+- `ADMIN_PASSWORD` y `ADMIN_SECRET` cargadas en Vercel (production, preview, development)

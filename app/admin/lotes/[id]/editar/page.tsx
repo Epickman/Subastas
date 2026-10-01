@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EditarLotePage(props: PageProps<"/admin/lotes/[id]/editar">) {
   const { id } = await props.params;
-  const lote = getLoteById(Number(id));
+  const lote = await getLoteById(Number(id));
   if (!lote) notFound();
 
   return (

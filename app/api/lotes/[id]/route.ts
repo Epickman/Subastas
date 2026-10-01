@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, ctx: RouteContext<"/api/lotes/[id]">) {
   const { id } = await ctx.params;
-  const lote = getLoteById(Number(id));
+  const lote = await getLoteById(Number(id));
   if (!lote) return NextResponse.json({ error: "Lote no encontrado" }, { status: 404 });
   return NextResponse.json(lote);
 }
@@ -16,7 +16,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/lotes/[id]">
     const body = await request.json();
     const { numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final } = body;
 
-    const lote = updateLote(Number(id), {
+    const lote = await updateLote(Number(id), {
       ...(numero_lote !== undefined && { numero_lote: String(numero_lote) }),
       ...(nombre !== undefined && { nombre: String(nombre) }),
       ...(descripcion !== undefined && { descripcion: String(descripcion) }),
@@ -36,7 +36,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/lotes/[id]">
 export async function DELETE(_req: Request, ctx: RouteContext<"/api/lotes/[id]">) {
   try {
     const { id } = await ctx.params;
-    deleteLote(Number(id));
+    await deleteLote(Number(id));
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: "Error al eliminar lote" }, { status: 500 });

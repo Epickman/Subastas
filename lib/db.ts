@@ -1,36 +1,50 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DATA_DIR, 'subasta.db');
+// Lazy init: DATABASE_URL may be missing at build time.
+let sql: NeonQueryFunction<false, false> | null = null;
+let schemaReady: Promise<void> | null = null;
 
-let db: Database.Database | null = null;
-
-export function getDb(): Database.Database {
-  if (db) return db;
-
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+function getSql(): NeonQueryFunction<false, false> {
+  if (!sql) {
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error('DATABASE_URL no está configurada');
+    sql = neon(url);
   }
+  return sql;
+}
 
-  db = new Database(DB_PATH);
-  db.pragma('journal_mode = WAL');
+// Hora local de Argentina como texto, igual que el formato que usaba SQLite.
+export const NOW_LOCAL =
+  "to_char(now() AT TIME ZONE 'America/Argentina/Buenos_Aires', 'YYYY-MM-DD HH24:MI:SS')";
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS lotes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      numero_lote TEXT NOT NULL,
-      nombre TEXT NOT NULL,
-      descripcion TEXT DEFAULT '',
-      imagen TEXT DEFAULT '',
-      estado TEXT DEFAULT 'sin_adjudicar',
-      ganador TEXT DEFAULT '',
-      precio_final REAL DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now', 'localtime')),
-      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
-    )
-  `);
+function ensureSchema(db: NeonQueryFunction<false, false>): Promise<void> {
+  if (!schemaReady) {
+    schemaReady = db
+      .query(`
+        CREATE TABLE IF NOT EXISTS lotes (
+          id SERIAL PRIMARY KEY,
+          numero_lote TEXT NOT NULL,
+          nombre TEXT NOT NULL,
+          descripcion TEXT DEFAULT '',
+          imagen TEXT DEFAULT '',
+          estado TEXT DEFAULT 'sin_adjudicar',
+          ganador TEXT DEFAULT '',
+          precio_final DOUBLE PRECISION DEFAULT 0,
+          created_at TEXT DEFAULT ${NOW_LOCAL},
+          updated_at TEXT DEFAULT ${NOW_LOCAL}
+        )
+      `)
+      .then(() => undefined)
+      .catch((e) => {
+        schemaReady = null;
+        throw e;
+      });
+  }
+  return schemaReady;
+}
 
+export async function getDb(): Promise<NeonQueryFunction<false, false>> {
+  const db = getSql();
+  await ensureSchema(db);
   return db;
 }

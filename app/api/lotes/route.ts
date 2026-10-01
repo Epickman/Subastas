@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const lotes = getAllLotes();
+    const lotes = await getAllLotes();
     return NextResponse.json(lotes);
   } catch (e) {
     return NextResponse.json({ error: "Error al obtener lotes" }, { status: 500 });
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Campos requeridos faltantes" }, { status: 400 });
     }
 
-    const lote = createLote({
+    const lote = await createLote({
       numero_lote: String(numero_lote),
       nombre: String(nombre),
       descripcion: String(descripcion ?? ""),

@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, NOW_LOCAL } from './db';
 
 export type EstadoLote = 'adjudicado' | 'subastado' | 'sin_adjudicar';
 
@@ -25,39 +25,59 @@ export type LoteInput = {
   precio_final: number;
 };
 
-export function getAllLotes(): Lote[] {
-  return getDb()
-    .prepare('SELECT * FROM lotes ORDER BY CAST(numero_lote AS INTEGER) ASC, numero_lote ASC')
-    .all() as Lote[];
+const COLUMNAS: (keyof LoteInput)[] = [
+  'numero_lote', 'nombre', 'descripcion', 'imagen', 'estado', 'ganador', 'precio_final',
+];
+
+function toLote(row: Record<string, unknown>): Lote {
+  return { ...(row as unknown as Lote), precio_final: Number(row.precio_final ?? 0) };
 }
 
-export function getLoteById(id: number): Lote | undefined {
-  return getDb()
-    .prepare('SELECT * FROM lotes WHERE id = ?')
-    .get(id) as Lote | undefined;
+export async function getAllLotes(): Promise<Lote[]> {
+  const db = await getDb();
+  // Números de lote numéricos primero, en orden numérico; el resto alfabético.
+  const rows = await db.query(`
+    SELECT * FROM lotes
+    ORDER BY CASE WHEN numero_lote ~ '^[0-9]+$' THEN numero_lote::numeric END ASC NULLS LAST,
+             numero_lote ASC
+  `);
+  return rows.map(toLote);
 }
 
-export function createLote(data: LoteInput): Lote {
-  const result = getDb()
-    .prepare(`
-      INSERT INTO lotes (numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final)
-      VALUES (@numero_lote, @nombre, @descripcion, @imagen, @estado, @ganador, @precio_final)
-    `)
-    .run(data);
-  return getLoteById(Number(result.lastInsertRowid))!;
+export async function getLoteById(id: number): Promise<Lote | undefined> {
+  if (!Number.isInteger(id)) return undefined;
+  const db = await getDb();
+  const rows = await db.query('SELECT * FROM lotes WHERE id = $1', [id]);
+  return rows[0] ? toLote(rows[0]) : undefined;
 }
 
-export function updateLote(id: number, data: Partial<LoteInput>): Lote | undefined {
-  if (Object.keys(data).length === 0) return getLoteById(id);
-  const sets = [...Object.keys(data).map(k => `${k} = @${k}`), "updated_at = datetime('now', 'localtime')"];
-  getDb()
-    .prepare(`UPDATE lotes SET ${sets.join(', ')} WHERE id = @id`)
-    .run({ ...data, id });
-  return getLoteById(id);
+export async function createLote(data: LoteInput): Promise<Lote> {
+  const db = await getDb();
+  const rows = await db.query(
+    `INSERT INTO lotes (numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    COLUMNAS.map((c) => data[c]),
+  );
+  return toLote(rows[0]);
 }
 
-export function deleteLote(id: number): void {
-  getDb().prepare('DELETE FROM lotes WHERE id = ?').run(id);
+export async function updateLote(id: number, data: Partial<LoteInput>): Promise<Lote | undefined> {
+  if (!Number.isInteger(id)) return undefined;
+  const keys = COLUMNAS.filter((c) => data[c] !== undefined);
+  if (keys.length === 0) return getLoteById(id);
+  const db = await getDb();
+  const sets = [...keys.map((k, i) => `${k} = $${i + 1}`), `updated_at = ${NOW_LOCAL}`];
+  const rows = await db.query(
+    `UPDATE lotes SET ${sets.join(', ')} WHERE id = $${keys.length + 1} RETURNING *`,
+    [...keys.map((k) => data[k]), id],
+  );
+  return rows[0] ? toLote(rows[0]) : undefined;
+}
+
+export async function deleteLote(id: number): Promise<void> {
+  if (!Number.isInteger(id)) return;
+  const db = await getDb();
+  await db.query('DELETE FROM lotes WHERE id = $1', [id]);
 }
 
 export function formatPrecio(precio: number): string {

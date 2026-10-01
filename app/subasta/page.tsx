@@ -97,8 +97,8 @@ function LoteCard({ lote, index }: { lote: Lote; index: number }) {
   );
 }
 
-export default function SubastaPage() {
-  const lotes = getAllLotes();
+export default async function SubastaPage() {
+  const lotes = await getAllLotes();
 
   return (
     <main className="min-h-dvh px-4 py-12 sm:px-6 lg:px-8" style={{ backgroundColor: "#080808" }}>
