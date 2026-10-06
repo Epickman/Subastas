@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import LoteMedia from "@/components/LoteMedia";
 import { getAllLotes, formatPrecio, ESTADO_CONFIG } from "@/lib/lotes";
 import DeleteButton from "./DeleteButton";
 
@@ -55,7 +55,7 @@ export default async function AdminPage() {
                 <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden" style={{ backgroundColor: "#0d0d0d" }}>
                   {lote.imagen ? (
                     <div className="relative w-full h-full">
-                      <Image src={lote.imagen} alt={lote.nombre} fill className="object-cover" sizes="56px" />
+                      <LoteMedia src={lote.imagen} alt={lote.nombre} sizes="56px" />
                     </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: "#3a3a3a" }}>
@@ -76,6 +76,11 @@ export default async function AdminPage() {
                     </span>
                   </div>
                   <p className="font-medium truncate" style={{ color: "#f0ede8" }}>{lote.nombre}</p>
+                  {lote.precio_base > 0 && (
+                    <p className="text-sm truncate" style={{ color: "#8a8080" }}>
+                      Base: {formatPrecio(lote.precio_base)}
+                    </p>
+                  )}
                   {lote.ganador && (
                     <p className="text-sm truncate" style={{ color: "#8a8080" }}>
                       {lote.ganador}{lote.precio_final > 0 ? ` · ${formatPrecio(lote.precio_final)}` : ""}

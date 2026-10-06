@@ -14,7 +14,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/lotes/[id]">
   try {
     const { id } = await ctx.params;
     const body = await request.json();
-    const { numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final } = body;
+    const { numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final, precio_base } = body;
 
     const lote = await updateLote(Number(id), {
       ...(numero_lote !== undefined && { numero_lote: String(numero_lote) }),
@@ -24,6 +24,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/lotes/[id]">
       ...(estado !== undefined && { estado }),
       ...(ganador !== undefined && { ganador: String(ganador) }),
       ...(precio_final !== undefined && { precio_final: Number(precio_final) }),
+      ...(precio_base !== undefined && { precio_base: Number(precio_base) }),
     });
 
     if (!lote) return NextResponse.json({ error: "Lote no encontrado" }, { status: 404 });

@@ -2,8 +2,10 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { upload } from "@vercel/blob/client";
+import LoteMedia from "@/components/LoteMedia";
 import type { Lote } from "@/lib/lotes";
+import { EXT_IMAGEN, EXT_VIDEO, extension } from "@/lib/media";
 
 type LoteFormProps = {
   initial?: Partial<Lote>;
@@ -12,9 +14,8 @@ type LoteFormProps = {
 };
 
 const ESTADOS = [
-  { value: "adjudicado", label: "Adjudicado" },
+  { value: "pendiente", label: "Pendiente de subasta" },
   { value: "subastado", label: "Subastado" },
-  { value: "sin_adjudicar", label: "Sin Adjudicar" },
 ];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -37,12 +38,15 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     nombre: initial.nombre ?? "",
     descripcion: initial.descripcion ?? "",
     imagen: initial.imagen ?? "",
-    estado: initial.estado ?? "sin_adjudicar",
+    estado: initial.estado ?? "pendiente",
     ganador: initial.ganador ?? "",
     precio_final: initial.precio_final ? String(initial.precio_final) : "",
+    precio_base: initial.precio_base ? String(initial.precio_base) : "",
   });
   const [imagePreview, setImagePreview] = useState(initial.imagen ?? "");
+  const [previewEsVideo, setPreviewEsVideo] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [progreso, setProgreso] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -54,20 +58,32 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const preview = URL.createObjectURL(file);
-    setImagePreview(preview);
+    const ext = extension(file.name);
+    if (![...EXT_IMAGEN, ...EXT_VIDEO].includes(ext)) {
+      setError("Formato no soportado.");
+      return;
+    }
+
+    setError("");
+    setImagePreview(URL.createObjectURL(file));
+    setPreviewEsVideo(EXT_VIDEO.includes(ext));
+    setProgreso(0);
     setUploading(true);
 
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      set("imagen", data.url);
+      // Subida directa del navegador a Vercel Blob; multipart para archivos grandes.
+      const blob = await upload(`lotes/${crypto.randomUUID()}.${ext}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+        contentType: file.type || undefined,
+        multipart: file.size > 20 * 1024 * 1024,
+        onUploadProgress: ({ percentage }) => setProgreso(Math.round(percentage)),
+      });
+      set("imagen", blob.url);
     } catch {
-      setError("Error al subir imagen.");
+      setError("Error al subir el archivo.");
       setImagePreview(form.imagen);
+      setPreviewEsVideo(false);
     } finally {
       setUploading(false);
     }
@@ -86,6 +102,7 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
       estado: form.estado,
       ganador: form.ganador.trim(),
       precio_final: form.precio_final ? Number(form.precio_final) : 0,
+      precio_base: form.precio_base ? Number(form.precio_base) : 0,
     };
 
     try {
@@ -106,7 +123,7 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     }
   }
 
-  const showWinner = form.estado === "adjudicado" || form.estado === "subastado";
+  const showWinner = form.estado === "subastado";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-xl">
@@ -146,7 +163,7 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
       </Field>
 
       {/* Image upload */}
-      <Field label="Imagen">
+      <Field label="Imagen o video">
         <div
           className="rounded-xl border-2 border-dashed cursor-pointer transition-colors"
           style={{ borderColor: "rgba(255,255,255,0.1)" }}
@@ -156,24 +173,27 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
         >
           {imagePreview ? (
             <div className="relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
-              <Image
-                src={imagePreview}
-                alt="Preview"
-                fill
-                className="object-cover"
-                sizes="576px"
-                unoptimized={imagePreview.startsWith("blob:")}
-              />
+              {previewEsVideo ? (
+                // Preview local (blob:) sin extensión: se fuerza como video.
+                <video src={imagePreview} autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <LoteMedia
+                  src={imagePreview}
+                  alt="Preview"
+                  sizes="576px"
+                  unoptimized={imagePreview.startsWith("blob:")}
+                />
+              )}
               {uploading && (
                 <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
-                  <p className="text-sm" style={{ color: "#c8a96e" }}>Subiendo...</p>
+                  <p className="text-sm" style={{ color: "#c8a96e" }}>Subiendo... {progreso}%</p>
                 </div>
               )}
               <div
                 className="absolute bottom-0 inset-x-0 py-3 text-xs text-center"
                 style={{ backgroundColor: "rgba(0,0,0,0.65)", color: "#c8c0b8" }}
               >
-                Clic para cambiar imagen
+                Clic para cambiar imagen o video
               </div>
             </div>
           ) : (
@@ -183,12 +203,24 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
                 <circle cx="11" cy="13" r="3" stroke="currentColor" strokeWidth="1.5"/>
                 <path d="M2 22l8-8 6 6 4-4 10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <p className="text-sm" style={{ color: "#8a8080" }}>Clic para subir imagen</p>
-              <p className="text-xs" style={{ color: "#5a5050" }}>JPG, PNG, WebP</p>
+              <p className="text-sm" style={{ color: "#8a8080" }}>Clic para subir imagen o video</p>
+              <p className="text-xs" style={{ color: "#5a5050" }}>JPG, PNG, WebP · MP4, MOV, WebM</p>
             </div>
           )}
         </div>
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+        <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleImageChange} className="hidden" />
+      </Field>
+
+      {/* Precio base */}
+      <Field label="Precio Base">
+        <input
+          type="number"
+          value={form.precio_base}
+          onChange={e => set("precio_base", e.target.value)}
+          placeholder="500000"
+          min="0"
+          className="input-field w-full px-4 py-3 rounded-lg text-sm"
+        />
       </Field>
 
       {/* Estado */}

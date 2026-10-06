@@ -1,6 +1,6 @@
 import { getDb, NOW_LOCAL } from './db';
 
-export type EstadoLote = 'adjudicado' | 'subastado' | 'sin_adjudicar';
+export type EstadoLote = 'pendiente' | 'subastado';
 
 export interface Lote {
   id: number;
@@ -11,6 +11,7 @@ export interface Lote {
   estado: EstadoLote;
   ganador: string;
   precio_final: number;
+  precio_base: number;
   created_at: string;
   updated_at: string;
 }
@@ -23,14 +24,25 @@ export type LoteInput = {
   estado: EstadoLote;
   ganador: string;
   precio_final: number;
+  precio_base: number;
 };
 
 const COLUMNAS: (keyof LoteInput)[] = [
-  'numero_lote', 'nombre', 'descripcion', 'imagen', 'estado', 'ganador', 'precio_final',
+  'numero_lote', 'nombre', 'descripcion', 'imagen', 'estado', 'ganador', 'precio_final', 'precio_base',
 ];
 
+// Estados anteriores ('adjudicado', 'sin_adjudicar') se leen como los actuales.
+function toEstado(value: unknown): EstadoLote {
+  return value === 'subastado' || value === 'adjudicado' ? 'subastado' : 'pendiente';
+}
+
 function toLote(row: Record<string, unknown>): Lote {
-  return { ...(row as unknown as Lote), precio_final: Number(row.precio_final ?? 0) };
+  return {
+    ...(row as unknown as Lote),
+    estado: toEstado(row.estado),
+    precio_final: Number(row.precio_final ?? 0),
+    precio_base: Number(row.precio_base ?? 0),
+  };
 }
 
 export async function getAllLotes(): Promise<Lote[]> {
@@ -54,8 +66,8 @@ export async function getLoteById(id: number): Promise<Lote | undefined> {
 export async function createLote(data: LoteInput): Promise<Lote> {
   const db = await getDb();
   const rows = await db.query(
-    `INSERT INTO lotes (numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    `INSERT INTO lotes (numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final, precio_base)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
     COLUMNAS.map((c) => data[c]),
   );
   return toLote(rows[0]);
@@ -86,7 +98,6 @@ export function formatPrecio(precio: number): string {
 }
 
 export const ESTADO_CONFIG = {
-  adjudicado: { label: 'ADJUDICADO', color: '#5cba7a', bgColor: 'rgba(92,186,122,0.12)' },
-  subastado: { label: 'SUBASTADO', color: '#6ba3c8', bgColor: 'rgba(107,163,200,0.12)' },
-  sin_adjudicar: { label: 'SIN ADJUDICAR', color: '#7a7878', bgColor: 'rgba(122,120,120,0.12)' },
+  pendiente: { label: 'PENDIENTE DE SUBASTA', color: '#c8a96e', bgColor: 'rgba(200,169,110,0.12)' },
+  subastado: { label: 'SUBASTADO', color: '#5cba7a', bgColor: 'rgba(92,186,122,0.12)' },
 } as const;

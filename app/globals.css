@@ -11,9 +11,8 @@
   --color-surface: #111111;
   --color-surface-hover: #181818;
   --color-rim: #1e1e1e;
-  --color-adjudicado: #5cba7a;
-  --color-subastado: #6ba3c8;
-  --color-sin-adjudicar: #7a7878;
+  --color-pendiente: #c8a96e;
+  --color-subastado: #5cba7a;
   --color-ink: #f0ede8;
   --color-ink-muted: #8a8080;
 }

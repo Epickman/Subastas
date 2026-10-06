@@ -27,13 +27,16 @@ function ensureSchema(db: NeonQueryFunction<false, false>): Promise<void> {
           nombre TEXT NOT NULL,
           descripcion TEXT DEFAULT '',
           imagen TEXT DEFAULT '',
-          estado TEXT DEFAULT 'sin_adjudicar',
+          estado TEXT DEFAULT 'pendiente',
           ganador TEXT DEFAULT '',
           precio_final DOUBLE PRECISION DEFAULT 0,
+          precio_base DOUBLE PRECISION DEFAULT 0,
           created_at TEXT DEFAULT ${NOW_LOCAL},
           updated_at TEXT DEFAULT ${NOW_LOCAL}
         )
       `)
+      // Tablas creadas antes de agregar precio_base.
+      .then(() => db.query('ALTER TABLE lotes ADD COLUMN IF NOT EXISTS precio_base DOUBLE PRECISION DEFAULT 0'))
       .then(() => undefined)
       .catch((e) => {
         schemaReady = null;

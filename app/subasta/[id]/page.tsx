@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import LoteMedia from "@/components/LoteMedia";
 import { notFound } from "next/navigation";
 import { getLoteById, formatPrecio, ESTADO_CONFIG } from "@/lib/lotes";
 
@@ -11,7 +11,7 @@ export default async function LotePage(props: PageProps<"/subasta/[id]">) {
   if (!lote) notFound();
 
   const cfg = ESTADO_CONFIG[lote.estado];
-  const showGanador = lote.estado === "adjudicado" || lote.estado === "subastado";
+  const showGanador = lote.estado === "subastado";
 
   return (
     <main className="min-h-dvh px-4 py-10 sm:px-6" style={{ backgroundColor: "#080808", color: "#f0ede8" }}>
@@ -37,18 +37,17 @@ export default async function LotePage(props: PageProps<"/subasta/[id]">) {
           {lote.nombre}
         </h1>
 
-        {/* Image */}
+        {/* Imagen o video */}
         {lote.imagen && (
           <div
             className="relative w-full rounded-2xl overflow-hidden mb-8"
             style={{ aspectRatio: "4/3", backgroundColor: "#0d0d0d" }}
           >
-            <Image
+            <LoteMedia
               src={lote.imagen}
               alt={lote.nombre}
-              fill
-              className="object-cover"
               sizes="(max-width: 768px) 100vw, 672px"
+              controls
               priority
             />
           </div>
@@ -95,7 +94,7 @@ export default async function LotePage(props: PageProps<"/subasta/[id]">) {
               )}
             </div>
           ) : (
-            <p className="text-sm" style={{ color: "#8a8080" }}>Este lote no fue adjudicado.</p>
+            <p className="text-sm" style={{ color: "#8a8080" }}>Este lote todavía no fue subastado.</p>
           )}
         </div>
 

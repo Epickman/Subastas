@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import LoteMedia from "@/components/LoteMedia";
 import { getAllLotes, formatPrecio, ESTADO_CONFIG, type Lote } from "@/lib/lotes";
 
 
@@ -38,11 +39,9 @@ function LoteCard({ lote, index }: { lote: Lote; index: number }) {
         {/* Image */}
         <div className="card-img relative aspect-[4/3] overflow-hidden" style={{ backgroundColor: "#0d0d0d" }}>
           {lote.imagen ? (
-            <Image
+            <LoteMedia
               src={lote.imagen}
               alt={lote.nombre}
-              fill
-              className="object-cover"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
           ) : (
@@ -73,7 +72,7 @@ function LoteCard({ lote, index }: { lote: Lote; index: number }) {
 
           <StatusBadge estado={lote.estado} />
 
-          {(lote.estado === "adjudicado" || lote.estado === "subastado") && (
+          {lote.estado === "subastado" && (
             <div className="flex flex-col gap-3 pt-1">
               {lote.ganador && (
                 <div>

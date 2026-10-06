@@ -37,12 +37,16 @@ app/
   api/
     lotes/route.ts        → GET (todos) + POST (crear)
     lotes/[id]/route.ts   → GET + PUT + DELETE por id
-    upload/route.ts       → POST: sube imagen a Vercel Blob, devuelve URL pública
+    upload/route.ts       → POST: emite token para subida directa del navegador a Vercel Blob (solo admin)
     img/[filename]/route.ts → (legado, ya no se usa) servía imágenes desde disco
     auth/
       login/route.ts      → POST: valida contraseña, setea cookie HMAC
       logout/route.ts     → POST: borra cookie admin_token
+components/
+  LoteMedia.tsx           → Renderiza imagen (next/image) o <video> según extensión
 lib/
+  auth.ts                 → computeToken / isAdminToken (HMAC), compartido por proxy, login y upload
+  media.ts                → Extensiones de imagen/video, esVideo (sin deps de servidor)
   db.ts                   → Cliente Neon lazy, crea tabla lotes si no existe
   lotes.ts                → CRUD, tipos, formatPrecio, ESTADO_CONFIG
 proxy.ts                  → Middleware de auth para rutas /admin/*
@@ -58,10 +62,11 @@ proxy.ts                  → Middleware de auth para rutas /admin/*
 | numero_lote | TEXT NOT NULL | Ordena como entero si es posible |
 | nombre | TEXT NOT NULL | |
 | descripcion | TEXT | Default '' |
-| imagen | TEXT | URL pública de Vercel Blob |
-| estado | TEXT | `adjudicado` / `subastado` / `sin_adjudicar` |
+| imagen | TEXT | URL pública de Vercel Blob (imagen o video, según extensión) |
+| estado | TEXT | `pendiente` / `subastado` |
 | ganador | TEXT | Nombre del ganador |
-| precio_final | DOUBLE PRECISION | 0 si no adjudicado |
+| precio_final | DOUBLE PRECISION | 0 si no subastado |
+| precio_base | DOUBLE PRECISION | 0 si no tiene; columna agregada con ALTER en `ensureSchema` |
 | created_at | TEXT | datetime localtime |
 | updated_at | TEXT | datetime localtime |
 
@@ -80,7 +85,8 @@ Fechas guardadas como texto en hora de Buenos Aires. Las funciones de `lib/lotes
 
 ## Imágenes
 
-- Se suben vía `POST /api/upload` a Vercel Blob en `lotes/<uuid>.<ext>` y se guarda la URL pública en el lote
+- Imágenes (jpg/png/webp/gif) o videos (mp4/mov/webm/m4v, hasta 500 MB) se suben desde el navegador directo a Vercel Blob con `upload()` de `@vercel/blob/client` (multipart si > 20 MB), en `lotes/<uuid>.<ext>`; `/api/upload` solo emite el token y exige cookie de admin
+- La URL pública se guarda en `imagen`; los videos se muestran en loop sin sonido en grilla/admin y con controles en el detalle
 
 ---
 
@@ -95,9 +101,8 @@ Paleta de colores (definida en `globals.css` y en componentes inline):
 | `--color-surface` | `#111111` | Cards, paneles |
 | `--color-ink` | `#f0ede8` | Texto principal |
 | `--color-ink-muted` | `#8a8080` | Texto secundario |
-| `--color-adjudicado` | `#5cba7a` | Estado verde |
-| `--color-subastado` | `#6ba3c8` | Estado azul |
-| `--color-sin-adjudicar` | `#7a7878` | Estado gris |
+| `--color-pendiente` | `#c8a96e` | Estado dorado (pendiente de subasta) |
+| `--color-subastado` | `#5cba7a` | Estado verde (subastado) |
 
 Clases CSS clave: `.btn-gold`, `.btn-danger`, `.btn-admin-edit`, `.link-gold`, `.link-back`, `.input-field`, `.card-lote`, `.animate-fadein`, `.stagger-1..6`
 
@@ -106,11 +111,12 @@ Clases CSS clave: `.btn-gold`, `.btn-danger`, `.btn-admin-edit`, `.link-gold`, `
 ## Flujo de estados de un lote
 
 ```
-sin_adjudicar → subastado → adjudicado
+pendiente → subastado
 ```
 
-- `adjudicado` y `subastado` muestran ganador y precio final en la UI pública y en el detalle
-- `sin_adjudicar` muestra "Este lote no fue adjudicado."
+- `subastado` muestra ganador y precio final en la UI pública y en el detalle
+- `pendiente` ("Pendiente de subasta") muestra "Este lote todavía no fue subastado."
+- Los valores viejos `adjudicado` / `sin_adjudicar` se leen como `subastado` / `pendiente` (`toEstado` en `lib/lotes.ts`)
 
 ---
 
@@ -147,3 +153,9 @@ Crear un `.env.local` con valores seguros antes de poner en producción.
 
 - Migración de SQLite + disco a Neon Postgres + Vercel Blob para poder correr en Vercel
 - `ADMIN_PASSWORD` y `ADMIN_SECRET` cargadas en Vercel (production, preview, development)
+
+## Registro de trabajo (sesión 2026-10-06)
+
+- Campo `precio_base` en lotes (form admin + lista admin; todavía no se muestra en la web pública)
+- Soporte de videos en lugar de imágenes, con subida directa a Vercel Blob y `/api/upload` protegido
+- Lógica de auth centralizada en `lib/auth.ts`

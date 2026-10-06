@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final } = body;
+    const { numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final, precio_base } = body;
 
     if (!numero_lote || !nombre || !estado) {
       return NextResponse.json({ error: "Campos requeridos faltantes" }, { status: 400 });
@@ -29,6 +29,7 @@ export async function POST(request: Request) {
       estado,
       ganador: String(ganador ?? ""),
       precio_final: Number(precio_final ?? 0),
+      precio_base: Number(precio_base ?? 0),
     });
 
     return NextResponse.json(lote, { status: 201 });
