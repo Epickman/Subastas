@@ -6,6 +6,7 @@ import { upload } from "@vercel/blob/client";
 import LoteMedia from "@/components/LoteMedia";
 import type { Lote } from "@/lib/lotes";
 import { EXT_IMAGEN, EXT_VIDEO, extension } from "@/lib/media";
+import { quitarAudio } from "@/lib/quitarAudio";
 
 type LoteFormProps = {
   initial?: Partial<Lote>;
@@ -47,6 +48,7 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
   const [previewEsVideo, setPreviewEsVideo] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progreso, setProgreso] = useState(0);
+  const [procesando, setProcesando] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -65,23 +67,37 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     }
 
     setError("");
+    const video = EXT_VIDEO.includes(ext);
     setImagePreview(URL.createObjectURL(file));
-    setPreviewEsVideo(EXT_VIDEO.includes(ext));
+    setPreviewEsVideo(video);
     setProgreso(0);
     setUploading(true);
 
     try {
+      let archivo = file;
+      if (video) {
+        setProcesando(true);
+        try {
+          archivo = await quitarAudio(file, ext);
+        } catch (e) {
+          console.error(e);
+          throw new Error("No se pudo quitar el audio del video.");
+        } finally {
+          setProcesando(false);
+        }
+      }
+
       // Subida directa del navegador a Vercel Blob; multipart para archivos grandes.
-      const blob = await upload(`lotes/${crypto.randomUUID()}.${ext}`, file, {
+      const blob = await upload(`lotes/${crypto.randomUUID()}.${ext}`, archivo, {
         access: "public",
         handleUploadUrl: "/api/upload",
-        contentType: file.type || undefined,
-        multipart: file.size > 20 * 1024 * 1024,
+        contentType: archivo.type || undefined,
+        multipart: archivo.size > 20 * 1024 * 1024,
         onUploadProgress: ({ percentage }) => setProgreso(Math.round(percentage)),
       });
       set("imagen", blob.url);
-    } catch {
-      setError("Error al subir el archivo.");
+    } catch (e) {
+      setError(e instanceof Error && e.message.startsWith("No se pudo") ? e.message : "Error al subir el archivo.");
       setImagePreview(form.imagen);
       setPreviewEsVideo(false);
     } finally {
@@ -186,7 +202,7 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
               )}
               {uploading && (
                 <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
-                  <p className="text-sm" style={{ color: "#c8a96e" }}>Subiendo... {progreso}%</p>
+                  <p className="text-sm" style={{ color: "#c8a96e" }}>{procesando ? "Quitando audio..." : `Subiendo... ${progreso}%`}</p>
                 </div>
               )}
               <div

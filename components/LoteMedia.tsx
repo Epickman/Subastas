@@ -1,11 +1,12 @@
 import Image from "next/image";
 import { esVideo } from "@/lib/media";
+import VideoMudo from "./VideoMudo";
 
 type LoteMediaProps = {
   src: string;
   alt: string;
   sizes: string;
-  // Con controles en el detalle; en grillas y miniaturas, en loop sin sonido.
+  // Siempre sin sonido; con controles en el detalle y en loop en grillas y miniaturas.
   controls?: boolean;
   priority?: boolean;
   unoptimized?: boolean;
@@ -14,7 +15,7 @@ type LoteMediaProps = {
 export default function LoteMedia({ src, alt, sizes, controls, priority, unoptimized }: LoteMediaProps) {
   if (esVideo(src)) {
     return controls ? (
-      <video src={src} controls playsInline preload="metadata" className="absolute inset-0 w-full h-full object-cover" />
+      <VideoMudo src={src} />
     ) : (
       <video src={src} autoPlay muted loop playsInline preload="metadata" className="absolute inset-0 w-full h-full object-cover" />
     );

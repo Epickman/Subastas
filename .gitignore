@@ -43,3 +43,6 @@ next-env.d.ts
 # SQLite WAL files
 *.db-shm
 *.db-wal
+
+# copiado por postinstall desde @ffmpeg/ffmpeg
+/public/ffmpeg/

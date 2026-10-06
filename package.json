@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "mkdir -p public/ffmpeg && cp node_modules/@ffmpeg/ffmpeg/dist/esm/worker.js node_modules/@ffmpeg/ffmpeg/dist/esm/const.js node_modules/@ffmpeg/ffmpeg/dist/esm/errors.js public/ffmpeg/"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@neondatabase/serverless": "^1.2.0",
     "@vercel/blob": "^2.8.0",
     "next": "16.3.6",

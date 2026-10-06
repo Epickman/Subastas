@@ -44,6 +44,7 @@ app/
       logout/route.ts     → POST: borra cookie admin_token
 components/
   LoteMedia.tsx           → Renderiza imagen (next/image) o <video> según extensión
+  VideoMudo.tsx           → Reproductor con controles que no deja activar el sonido (client)
 lib/
   auth.ts                 → computeToken / isAdminToken (HMAC), compartido por proxy, login y upload
   media.ts                → Extensiones de imagen/video, esVideo (sin deps de servidor)
@@ -86,7 +87,8 @@ Fechas guardadas como texto en hora de Buenos Aires. Las funciones de `lib/lotes
 ## Imágenes
 
 - Imágenes (jpg/png/webp/gif) o videos (mp4/mov/webm/m4v, hasta 500 MB) se suben desde el navegador directo a Vercel Blob con `upload()` de `@vercel/blob/client` (multipart si > 20 MB), en `lotes/<uuid>.<ext>`; `/api/upload` solo emite el token y exige cookie de admin
-- La URL pública se guarda en `imagen`; los videos se muestran en loop sin sonido en grilla/admin y con controles en el detalle
+- Antes de subir un video se le quita la pista de audio en el navegador con ffmpeg.wasm (`lib/quitarAudio.ts`, `-an -c copy`, sin recodificar). El core se baja de unpkg; el worker se sirve sin bundlear desde `public/ffmpeg/` (lo copia el `postinstall`, está en `.gitignore`) porque Turbopack no soporta su `import()` dinámico
+- La URL pública se guarda en `imagen`; los videos se muestran siempre `muted`: en loop en grilla/admin y con controles en el detalle
 
 ---
 
@@ -159,3 +161,4 @@ Crear un `.env.local` con valores seguros antes de poner en producción.
 - Campo `precio_base` en lotes (form admin + lista admin; todavía no se muestra en la web pública)
 - Soporte de videos en lugar de imágenes, con subida directa a Vercel Blob y `/api/upload` protegido
 - Lógica de auth centralizada en `lib/auth.ts`
+- Los videos se suben sin audio (ffmpeg.wasm en el navegador) y el reproductor del detalle no deja activar el sonido (`VideoMudo`)
