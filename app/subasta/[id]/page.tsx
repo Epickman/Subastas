@@ -84,6 +84,14 @@ export default async function LotePage(props: PageProps<"/subasta/[id]">) {
                   <p className="text-xl font-medium" style={{ color: "#f0ede8" }}>{lote.ganador}</p>
                 </div>
               )}
+              {lote.precio_base > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "#6a6060" }}>Precio Base</p>
+                  <p className="text-xl font-medium" style={{ color: "#8a8080", fontFamily: "var(--font-playfair)" }}>
+                    {formatPrecio(lote.precio_base)}
+                  </p>
+                </div>
+              )}
               {lote.precio_final > 0 && (
                 <div>
                   <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "#6a6060" }}>Precio Final</p>
@@ -94,7 +102,17 @@ export default async function LotePage(props: PageProps<"/subasta/[id]">) {
               )}
             </div>
           ) : (
-            <p className="text-sm" style={{ color: "#8a8080" }}>Este lote todavía no fue subastado.</p>
+            <div>
+              {lote.precio_base > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "#6a6060" }}>Precio Base</p>
+                  <p className="text-2xl font-semibold" style={{ color: "#c8a96e", fontFamily: "var(--font-playfair)" }}>
+                    {formatPrecio(lote.precio_base)}
+                  </p>
+                </div>
+              )}
+              <p className="text-sm" style={{ color: "#8a8080" }}>Este lote todavía no fue subastado.</p>
+            </div>
           )}
         </div>
 

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "mkdir -p public/ffmpeg && cp node_modules/@ffmpeg/ffmpeg/dist/esm/worker.js node_modules/@ffmpeg/ffmpeg/dist/esm/const.js node_modules/@ffmpeg/ffmpeg/dist/esm/errors.js public/ffmpeg/"
+    "postinstall": "node scripts/copy-ffmpeg.js"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",

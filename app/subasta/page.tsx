@@ -72,12 +72,20 @@ function LoteCard({ lote, index }: { lote: Lote; index: number }) {
 
           <StatusBadge estado={lote.estado} />
 
-          {lote.estado === "subastado" && (
+          {lote.estado === "subastado" ? (
             <div className="flex flex-col gap-3 pt-1">
               {lote.ganador && (
                 <div>
                   <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "#6a6060" }}>Ganador</p>
                   <p className="font-medium" style={{ color: "#d8d0c8" }}>{lote.ganador}</p>
+                </div>
+              )}
+              {lote.precio_base > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "#6a6060" }}>Precio Base</p>
+                  <p className="text-sm font-medium" style={{ color: "#8a8080" }}>
+                    {formatPrecio(lote.precio_base)}
+                  </p>
                 </div>
               )}
               {lote.precio_final > 0 && (
@@ -89,7 +97,14 @@ function LoteCard({ lote, index }: { lote: Lote; index: number }) {
                 </div>
               )}
             </div>
-          )}
+          ) : lote.precio_base > 0 ? (
+            <div className="pt-1">
+              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "#6a6060" }}>Precio Base</p>
+              <p className="text-xl font-semibold" style={{ color: "#c8a96e", fontFamily: "var(--font-playfair)" }}>
+                {formatPrecio(lote.precio_base)}
+              </p>
+            </div>
+          ) : null}
         </div>
       </article>
     </Link>
