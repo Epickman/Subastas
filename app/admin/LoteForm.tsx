@@ -97,8 +97,10 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     setForm(f => ({ ...f, [key]: value }));
   }
 
+  // Si se eligen varios archivos, el primero es la portada y el resto va a la galería.
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const [file, ...resto] = Array.from(e.target.files ?? []);
+    e.target.value = "";
     if (!file) return;
 
     const ext = extension(file.name);
@@ -122,15 +124,20 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     } finally {
       setUploading(false);
     }
+    if (resto.length > 0) await subirAGaleria(resto);
   }
 
   async function handleGaleriaChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
     if (files.length === 0) return;
+    setError("");
+    await subirAGaleria(files);
+  }
 
+  async function subirAGaleria(files: File[]) {
     const validos = files.filter(f => FORMATOS.includes(extension(f.name)));
-    setError(validos.length < files.length ? "Algunos archivos tienen un formato no soportado y se omitieron." : "");
+    if (validos.length < files.length) setError("Algunos archivos tienen un formato no soportado y se omitieron.");
 
     // De a uno, para no saturar la conexión con videos grandes.
     for (const [i, file] of validos.entries()) {
@@ -269,12 +276,13 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
                 <circle cx="11" cy="13" r="3" stroke="currentColor" strokeWidth="1.5"/>
                 <path d="M2 22l8-8 6 6 4-4 10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <p className="text-sm" style={{ color: "#8a8080" }}>Clic para subir imagen o video</p>
+              <p className="text-sm" style={{ color: "#8a8080" }}>Clic para subir imágenes o videos</p>
+              <p className="text-xs" style={{ color: "#5a5050" }}>Podés elegir varios: el primero queda como portada</p>
               <p className="text-xs" style={{ color: "#5a5050" }}>JPG, PNG, WebP · MP4, MOV, WebM</p>
             </div>
           )}
         </div>
-        <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleImageChange} className="hidden" />
+        <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={handleImageChange} className="hidden" />
       </Field>
 
       {/* Galería */}
