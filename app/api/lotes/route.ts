@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAllLotes, createLote } from "@/lib/lotes";
 import { toGaleria } from "@/lib/media";
+import { esAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!(await esAdmin())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     const body = await request.json();
     const { numero_lote, nombre, descripcion, imagen, galeria, estado, ganador, precio_final, precio_base } = body;
 

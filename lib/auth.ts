@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers';
+
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'subasta2024';
 export const ADMIN_SECRET = process.env.ADMIN_SECRET ?? 'change-this-secret-in-production';
 
@@ -19,4 +21,10 @@ export async function computeToken(password: string, secret: string): Promise<st
 export async function isAdminToken(token: string | undefined): Promise<boolean> {
   if (!token) return false;
   return token === (await computeToken(ADMIN_PASSWORD, ADMIN_SECRET));
+}
+
+// Para route handlers: true si la request trae la cookie de admin válida.
+export async function esAdmin(): Promise<boolean> {
+  const cookieStore = await cookies();
+  return isAdminToken(cookieStore.get('admin_token')?.value);
 }

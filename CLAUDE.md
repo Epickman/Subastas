@@ -30,6 +30,7 @@ app/
     page.tsx              → Lista de lotes con editar/eliminar
     login/page.tsx        → Formulario de login (client component)
     DeleteButton.tsx      → Botón de eliminar con confirmación (client)
+    ListaLotes.tsx        → Lista reordenable arrastrando (pointer events, mouse y touch); guarda en /api/lotes/orden (client)
     LoteForm.tsx          → Formulario crear/editar lote (client)
     lotes/
       nuevo/page.tsx      → Página crear lote
@@ -37,6 +38,7 @@ app/
   api/
     lotes/route.ts        → GET (todos) + POST (crear)
     lotes/[id]/route.ts   → GET + PUT + DELETE por id
+    lotes/orden/route.ts  → PUT { ids }: guarda el orden de los lotes
     upload/route.ts       → POST: emite token para subida directa del navegador a Vercel Blob (solo admin)
     img/[filename]/route.ts → (legado, ya no se usa) servía imágenes desde disco
     auth/
@@ -69,6 +71,7 @@ proxy.ts                  → Middleware de auth para rutas /admin/*
 | ganador | TEXT | Nombre del ganador |
 | precio_final | DOUBLE PRECISION | 0 si no subastado |
 | precio_base | DOUBLE PRECISION | 0 si no tiene; columna agregada con ALTER en `ensureSchema` |
+| orden | INTEGER | Posición elegida en el admin; NULL = al final, por número de lote |
 | galeria | JSONB | Array de URLs extra (imágenes/videos); `imagen` es la portada. Agregada con ALTER |
 | created_at | TEXT | datetime localtime |
 | updated_at | TEXT | datetime localtime |
@@ -82,6 +85,7 @@ Fechas guardadas como texto en hora de Buenos Aires. Las funciones de `lib/lotes
 - Contraseña comparada directamente contra `ADMIN_PASSWORD` (env var, default `subasta2024`)
 - Token = HMAC-SHA256(password, ADMIN_SECRET), almacenado en cookie `admin_token` (httpOnly, 7 días)
 - El middleware `proxy.ts` protege todas las rutas `/admin/*` excepto `/admin/login`
+- Las rutas de API que modifican (POST/PUT/DELETE de `/api/lotes*`, `/api/upload`) validan la cookie con `esAdmin()` / `isAdminToken` de `lib/auth.ts`; los GET son públicos
 - **Importante**: en producción hay que setear `ADMIN_PASSWORD` y `ADMIN_SECRET` como variables de entorno seguras
 
 ---
@@ -169,3 +173,5 @@ Crear un `.env.local` con valores seguros antes de poner en producción.
 
 - En el detalle del lote la imagen se ve completa (sin recorte) y al tocarla se abre a pantalla completa; se cierra con click, X o Escape
 - Galería por lote: columna `galeria` (JSONB), sección "Más imágenes o videos" en el form admin y `GaleriaLote` en el detalle (miniaturas, flechas, teclado)
+- Reordenar lotes arrastrando en `/admin` (columna `orden`); el número de lote no cambia
+- Seguridad: las rutas de API que modifican lotes ahora exigen sesión de admin (antes eran públicas)

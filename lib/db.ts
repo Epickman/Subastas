@@ -32,6 +32,7 @@ function ensureSchema(db: NeonQueryFunction<false, false>): Promise<void> {
           precio_final DOUBLE PRECISION DEFAULT 0,
           precio_base DOUBLE PRECISION DEFAULT 0,
           galeria JSONB DEFAULT '[]'::jsonb,
+          orden INTEGER,
           created_at TEXT DEFAULT ${NOW_LOCAL},
           updated_at TEXT DEFAULT ${NOW_LOCAL}
         )
@@ -40,6 +41,8 @@ function ensureSchema(db: NeonQueryFunction<false, false>): Promise<void> {
       .then(() => db.query('ALTER TABLE lotes ADD COLUMN IF NOT EXISTS precio_base DOUBLE PRECISION DEFAULT 0'))
       // Tablas creadas antes de agregar la galería.
       .then(() => db.query("ALTER TABLE lotes ADD COLUMN IF NOT EXISTS galeria JSONB DEFAULT '[]'::jsonb"))
+      // Tablas creadas antes de poder reordenar lotes desde el admin.
+      .then(() => db.query('ALTER TABLE lotes ADD COLUMN IF NOT EXISTS orden INTEGER'))
       .then(() => undefined)
       .catch((e) => {
         schemaReady = null;

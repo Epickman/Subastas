@@ -56,13 +56,26 @@ function toLote(row: Record<string, unknown>): Lote {
 
 export async function getAllLotes(): Promise<Lote[]> {
   const db = await getDb();
-  // Números de lote numéricos primero, en orden numérico; el resto alfabético.
+  // Primero el orden elegido en el admin; los lotes sin orden van al final por
+  // número de lote (numéricos en orden numérico, el resto alfabético).
   const rows = await db.query(`
     SELECT * FROM lotes
-    ORDER BY CASE WHEN numero_lote ~ '^[0-9]+$' THEN numero_lote::numeric END ASC NULLS LAST,
+    ORDER BY orden ASC NULLS LAST,
+             CASE WHEN numero_lote ~ '^[0-9]+$' THEN numero_lote::numeric END ASC NULLS LAST,
              numero_lote ASC
   `);
   return rows.map(toLote);
+}
+
+// Guarda el orden de la lista: el primer id queda en la posición 1.
+export async function reordenarLotes(ids: number[]): Promise<void> {
+  const db = await getDb();
+  await db.query(
+    `UPDATE lotes SET orden = t.pos
+     FROM unnest($1::int[]) WITH ORDINALITY AS t(id, pos)
+     WHERE lotes.id = t.id`,
+    [ids],
+  );
 }
 
 export async function getLoteById(id: number): Promise<Lote | undefined> {

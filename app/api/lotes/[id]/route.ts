@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getLoteById, updateLote, deleteLote } from "@/lib/lotes";
 import { toGaleria } from "@/lib/media";
+import { esAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/lotes/[id]">) {
 
 export async function PUT(request: Request, ctx: RouteContext<"/api/lotes/[id]">) {
   try {
+    if (!(await esAdmin())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     const { id } = await ctx.params;
     const body = await request.json();
     const { numero_lote, nombre, descripcion, imagen, galeria, estado, ganador, precio_final, precio_base } = body;
@@ -38,6 +40,7 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/lotes/[id]">
 
 export async function DELETE(_req: Request, ctx: RouteContext<"/api/lotes/[id]">) {
   try {
+    if (!(await esAdmin())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     const { id } = await ctx.params;
     await deleteLote(Number(id));
     return NextResponse.json({ ok: true });
