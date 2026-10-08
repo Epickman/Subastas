@@ -19,6 +19,43 @@ const ESTADOS = [
   { value: "subastado", label: "Subastado" },
 ];
 
+const FORMATOS = [...EXT_IMAGEN, ...EXT_VIDEO];
+
+// Sube un archivo directo del navegador a Vercel Blob (a los videos les quita el audio antes).
+async function subirArchivo(
+  file: File,
+  onProgreso: (pct: number) => void,
+  onProcesando: (activo: boolean) => void,
+): Promise<string> {
+  const ext = extension(file.name);
+  let archivo = file;
+  if (EXT_VIDEO.includes(ext)) {
+    onProcesando(true);
+    try {
+      archivo = await quitarAudio(file, ext);
+    } catch (e) {
+      console.error(e);
+      throw new Error("No se pudo quitar el audio del video.");
+    } finally {
+      onProcesando(false);
+    }
+  }
+
+  // Multipart para archivos grandes.
+  const blob = await upload(`lotes/${crypto.randomUUID()}.${ext}`, archivo, {
+    access: "public",
+    handleUploadUrl: "/api/upload",
+    contentType: archivo.type || undefined,
+    multipart: archivo.size > 20 * 1024 * 1024,
+    onUploadProgress: ({ percentage }) => onProgreso(Math.round(percentage)),
+  });
+  return blob.url;
+}
+
+function mensajeError(e: unknown): string {
+  return e instanceof Error && e.message.startsWith("No se pudo") ? e.message : "Error al subir el archivo.";
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -33,6 +70,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const galeriaRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     numero_lote: initial.numero_lote ?? "",
@@ -44,6 +82,9 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     precio_final: initial.precio_final ? String(initial.precio_final) : "",
     precio_base: initial.precio_base ? String(initial.precio_base) : "",
   });
+  const [galeria, setGaleria] = useState<string[]>(initial.galeria ?? []);
+  // Texto de estado mientras se suben archivos a la galería ("" = sin subidas).
+  const [subiendoGaleria, setSubiendoGaleria] = useState("");
   const [imagePreview, setImagePreview] = useState(initial.imagen ?? "");
   const [previewEsVideo, setPreviewEsVideo] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -61,48 +102,56 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     if (!file) return;
 
     const ext = extension(file.name);
-    if (![...EXT_IMAGEN, ...EXT_VIDEO].includes(ext)) {
+    if (!FORMATOS.includes(ext)) {
       setError("Formato no soportado.");
       return;
     }
 
     setError("");
-    const video = EXT_VIDEO.includes(ext);
     setImagePreview(URL.createObjectURL(file));
-    setPreviewEsVideo(video);
+    setPreviewEsVideo(EXT_VIDEO.includes(ext));
     setProgreso(0);
     setUploading(true);
 
     try {
-      let archivo = file;
-      if (video) {
-        setProcesando(true);
-        try {
-          archivo = await quitarAudio(file, ext);
-        } catch (e) {
-          console.error(e);
-          throw new Error("No se pudo quitar el audio del video.");
-        } finally {
-          setProcesando(false);
-        }
-      }
-
-      // Subida directa del navegador a Vercel Blob; multipart para archivos grandes.
-      const blob = await upload(`lotes/${crypto.randomUUID()}.${ext}`, archivo, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-        contentType: archivo.type || undefined,
-        multipart: archivo.size > 20 * 1024 * 1024,
-        onUploadProgress: ({ percentage }) => setProgreso(Math.round(percentage)),
-      });
-      set("imagen", blob.url);
+      set("imagen", await subirArchivo(file, setProgreso, setProcesando));
     } catch (e) {
-      setError(e instanceof Error && e.message.startsWith("No se pudo") ? e.message : "Error al subir el archivo.");
+      setError(mensajeError(e));
       setImagePreview(form.imagen);
       setPreviewEsVideo(false);
     } finally {
       setUploading(false);
     }
+  }
+
+  async function handleGaleriaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+
+    const validos = files.filter(f => FORMATOS.includes(extension(f.name)));
+    setError(validos.length < files.length ? "Algunos archivos tienen un formato no soportado y se omitieron." : "");
+
+    // De a uno, para no saturar la conexión con videos grandes.
+    for (const [i, file] of validos.entries()) {
+      const prefijo = validos.length > 1 ? `${i + 1}/${validos.length} · ` : "";
+      setSubiendoGaleria(`${prefijo}Subiendo... 0%`);
+      try {
+        const url = await subirArchivo(
+          file,
+          pct => setSubiendoGaleria(`${prefijo}Subiendo... ${pct}%`),
+          activo => activo && setSubiendoGaleria(`${prefijo}Quitando audio...`),
+        );
+        setGaleria(g => [...g, url]);
+      } catch (e) {
+        setError(`${file.name}: ${mensajeError(e)}`);
+      }
+    }
+    setSubiendoGaleria("");
+  }
+
+  function quitarDeGaleria(url: string) {
+    setGaleria(g => g.filter(u => u !== url));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -115,6 +164,7 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
       nombre: form.nombre.trim(),
       descripcion: form.descripcion.trim(),
       imagen: form.imagen,
+      galeria,
       estado: form.estado,
       ganador: form.ganador.trim(),
       precio_final: form.precio_final ? Number(form.precio_final) : 0,
@@ -179,7 +229,7 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
       </Field>
 
       {/* Image upload */}
-      <Field label="Imagen o video">
+      <Field label="Imagen o video principal">
         <div
           className="rounded-xl border-2 border-dashed cursor-pointer transition-colors"
           style={{ borderColor: "rgba(255,255,255,0.1)" }}
@@ -225,6 +275,43 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
           )}
         </div>
         <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleImageChange} className="hidden" />
+      </Field>
+
+      {/* Galería */}
+      <Field label="Más imágenes o videos">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          {galeria.map(url => (
+            <div key={url} className="relative rounded-lg overflow-hidden" style={{ aspectRatio: "1", backgroundColor: "#0d0d0d" }}>
+              <LoteMedia src={url} alt="" sizes="144px" />
+              <button
+                type="button"
+                onClick={() => quitarDeGaleria(url)}
+                aria-label="Quitar"
+                className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full"
+                style={{ backgroundColor: "rgba(0,0,0,0.7)", color: "#f0ede8" }}
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => galeriaRef.current?.click()}
+            disabled={!!subiendoGaleria}
+            className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-2 text-center text-xs"
+            style={{ aspectRatio: "1", borderColor: "rgba(255,255,255,0.1)", color: subiendoGaleria ? "#c8a96e" : "#8a8080" }}
+          >
+            {subiendoGaleria || (
+              <>
+                <span className="text-2xl leading-none">+</span>
+                Agregar
+              </>
+            )}
+          </button>
+        </div>
+        <input ref={galeriaRef} type="file" accept="image/*,video/*" multiple onChange={handleGaleriaChange} className="hidden" />
       </Field>
 
       {/* Precio base */}
@@ -285,7 +372,7 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
       <div className="flex items-center gap-3 pt-2">
         <button
           type="submit"
-          disabled={saving || uploading}
+          disabled={saving || uploading || !!subiendoGaleria}
           className="btn-gold px-6 py-3 rounded-lg text-sm font-semibold tracking-wider"
         >
           {saving ? "Guardando..." : action === "create" ? "Crear lote" : "Guardar cambios"}

@@ -45,7 +45,7 @@ app/
 components/
   LoteMedia.tsx           → Renderiza imagen (next/image) o <video> según extensión
   VideoMudo.tsx           → Reproductor con controles que no deja activar el sonido (client)
-  ImagenAmpliable.tsx     → Imagen del detalle sin recorte (object-contain) que se abre a pantalla completa (client)
+  GaleriaLote.tsx         → Detalle: portada + galería con miniaturas y flechas; imágenes sin recorte que se abren a pantalla completa (client)
 lib/
   auth.ts                 → computeToken / isAdminToken (HMAC), compartido por proxy, login y upload
   media.ts                → Extensiones de imagen/video, esVideo (sin deps de servidor)
@@ -69,6 +69,7 @@ proxy.ts                  → Middleware de auth para rutas /admin/*
 | ganador | TEXT | Nombre del ganador |
 | precio_final | DOUBLE PRECISION | 0 si no subastado |
 | precio_base | DOUBLE PRECISION | 0 si no tiene; columna agregada con ALTER en `ensureSchema` |
+| galeria | JSONB | Array de URLs extra (imágenes/videos); `imagen` es la portada. Agregada con ALTER |
 | created_at | TEXT | datetime localtime |
 | updated_at | TEXT | datetime localtime |
 
@@ -89,7 +90,7 @@ Fechas guardadas como texto en hora de Buenos Aires. Las funciones de `lib/lotes
 
 - Imágenes (jpg/png/webp/gif) o videos (mp4/mov/webm/m4v, hasta 500 MB) se suben desde el navegador directo a Vercel Blob con `upload()` de `@vercel/blob/client` (multipart si > 20 MB), en `lotes/<uuid>.<ext>`; `/api/upload` solo emite el token y exige cookie de admin
 - Antes de subir un video se le quita la pista de audio en el navegador con ffmpeg.wasm (`lib/quitarAudio.ts`, `-an -c copy`, sin recodificar). El core se baja de unpkg; el worker se sirve sin bundlear desde `public/ffmpeg/` (lo copia el `postinstall`, está en `.gitignore`) porque Turbopack no soporta su `import()` dinámico
-- La URL pública se guarda en `imagen`; los videos se muestran siempre `muted`: en loop en grilla/admin y con controles en el detalle
+- La URL de la portada se guarda en `imagen` y las adicionales en `galeria` (el form admin sube varias a la vez, de a una); los videos se muestran siempre `muted`: en loop en grilla/admin y con controles en el detalle
 
 ---
 
@@ -166,4 +167,5 @@ Crear un `.env.local` con valores seguros antes de poner en producción.
 
 ## Registro de trabajo (sesión 2026-10-08)
 
-- En el detalle del lote la imagen se ve completa (sin recorte) y al tocarla se abre a pantalla completa (`ImagenAmpliable`); se cierra con click, X o Escape
+- En el detalle del lote la imagen se ve completa (sin recorte) y al tocarla se abre a pantalla completa; se cierra con click, X o Escape
+- Galería por lote: columna `galeria` (JSONB), sección "Más imágenes o videos" en el form admin y `GaleriaLote` en el detalle (miniaturas, flechas, teclado)

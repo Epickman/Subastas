@@ -1,7 +1,5 @@
 import Link from "next/link";
-import LoteMedia from "@/components/LoteMedia";
-import ImagenAmpliable from "@/components/ImagenAmpliable";
-import { esVideo } from "@/lib/media";
+import GaleriaLote from "@/components/GaleriaLote";
 import { notFound } from "next/navigation";
 import { getLoteById, formatPrecio, ESTADO_CONFIG } from "@/lib/lotes";
 
@@ -14,6 +12,7 @@ export default async function LotePage(props: PageProps<"/subasta/[id]">) {
 
   const cfg = ESTADO_CONFIG[lote.estado];
   const showGanador = lote.estado === "subastado";
+  const media = [lote.imagen, ...lote.galeria].filter(Boolean);
 
   return (
     <main className="min-h-dvh px-4 py-10 sm:px-6" style={{ backgroundColor: "#080808", color: "#f0ede8" }}>
@@ -39,25 +38,8 @@ export default async function LotePage(props: PageProps<"/subasta/[id]">) {
           {lote.nombre}
         </h1>
 
-        {/* Imagen o video */}
-        {lote.imagen && (
-          <div
-            className="relative w-full rounded-2xl overflow-hidden mb-8"
-            style={{ aspectRatio: "4/3", backgroundColor: "#0d0d0d" }}
-          >
-            {esVideo(lote.imagen) ? (
-              <LoteMedia
-                src={lote.imagen}
-                alt={lote.nombre}
-                sizes="(max-width: 768px) 100vw, 672px"
-                controls
-                priority
-              />
-            ) : (
-              <ImagenAmpliable src={lote.imagen} alt={lote.nombre} sizes="(max-width: 768px) 100vw, 672px" />
-            )}
-          </div>
-        )}
+        {/* Portada + galería (imágenes y videos) */}
+        {media.length > 0 && <GaleriaLote items={media} alt={lote.nombre} />}
 
         {/* Description */}
         {lote.descripcion && (

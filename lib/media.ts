@@ -9,3 +9,8 @@ export function extension(nombre: string): string {
 export function esVideo(url: string): boolean {
   return EXT_VIDEO.includes(extension(url));
 }
+
+// Lista de URLs válida a partir de lo que llega en el body de la API.
+export function toGaleria(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+}

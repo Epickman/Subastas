@@ -8,6 +8,8 @@ export interface Lote {
   nombre: string;
   descripcion: string;
   imagen: string;
+  // Imágenes y videos adicionales; `imagen` es la portada.
+  galeria: string[];
   estado: EstadoLote;
   ganador: string;
   precio_final: number;
@@ -21,6 +23,7 @@ export type LoteInput = {
   nombre: string;
   descripcion: string;
   imagen: string;
+  galeria: string[];
   estado: EstadoLote;
   ganador: string;
   precio_final: number;
@@ -28,8 +31,13 @@ export type LoteInput = {
 };
 
 const COLUMNAS: (keyof LoteInput)[] = [
-  'numero_lote', 'nombre', 'descripcion', 'imagen', 'estado', 'ganador', 'precio_final', 'precio_base',
+  'numero_lote', 'nombre', 'descripcion', 'imagen', 'estado', 'ganador', 'precio_final', 'precio_base', 'galeria',
 ];
+
+// galeria es JSONB: se manda como texto JSON.
+function valor(data: Partial<LoteInput>, c: keyof LoteInput) {
+  return c === 'galeria' ? JSON.stringify(data.galeria) : data[c];
+}
 
 // Estados anteriores ('adjudicado', 'sin_adjudicar') se leen como los actuales.
 function toEstado(value: unknown): EstadoLote {
@@ -42,6 +50,7 @@ function toLote(row: Record<string, unknown>): Lote {
     estado: toEstado(row.estado),
     precio_final: Number(row.precio_final ?? 0),
     precio_base: Number(row.precio_base ?? 0),
+    galeria: Array.isArray(row.galeria) ? row.galeria.map(String) : [],
   };
 }
 
@@ -66,9 +75,9 @@ export async function getLoteById(id: number): Promise<Lote | undefined> {
 export async function createLote(data: LoteInput): Promise<Lote> {
   const db = await getDb();
   const rows = await db.query(
-    `INSERT INTO lotes (numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final, precio_base)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-    COLUMNAS.map((c) => data[c]),
+    `INSERT INTO lotes (numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final, precio_base, galeria)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+    COLUMNAS.map((c) => valor(data, c)),
   );
   return toLote(rows[0]);
 }
@@ -81,7 +90,7 @@ export async function updateLote(id: number, data: Partial<LoteInput>): Promise<
   const sets = [...keys.map((k, i) => `${k} = $${i + 1}`), `updated_at = ${NOW_LOCAL}`];
   const rows = await db.query(
     `UPDATE lotes SET ${sets.join(', ')} WHERE id = $${keys.length + 1} RETURNING *`,
-    [...keys.map((k) => data[k]), id],
+    [...keys.map((k) => valor(data, k)), id],
   );
   return rows[0] ? toLote(rows[0]) : undefined;
 }

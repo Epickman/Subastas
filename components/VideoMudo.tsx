@@ -12,7 +12,7 @@ export default function VideoMudo({ src }: { src: string }) {
       onVolumeChange={e => {
         e.currentTarget.muted = true;
       }}
-      className="absolute inset-0 w-full h-full object-cover"
+      className="absolute inset-0 w-full h-full object-contain"
     />
   );
 }
