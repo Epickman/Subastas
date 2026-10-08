@@ -45,6 +45,7 @@ app/
 components/
   LoteMedia.tsx           → Renderiza imagen (next/image) o <video> según extensión
   VideoMudo.tsx           → Reproductor con controles que no deja activar el sonido (client)
+  ImagenAmpliable.tsx     → Imagen del detalle sin recorte (object-contain) que se abre a pantalla completa (client)
 lib/
   auth.ts                 → computeToken / isAdminToken (HMAC), compartido por proxy, login y upload
   media.ts                → Extensiones de imagen/video, esVideo (sin deps de servidor)
@@ -162,3 +163,7 @@ Crear un `.env.local` con valores seguros antes de poner en producción.
 - Soporte de videos en lugar de imágenes, con subida directa a Vercel Blob y `/api/upload` protegido
 - Lógica de auth centralizada en `lib/auth.ts`
 - Los videos se suben sin audio (ffmpeg.wasm en el navegador) y el reproductor del detalle no deja activar el sonido (`VideoMudo`)
+
+## Registro de trabajo (sesión 2026-10-08)
+
+- En el detalle del lote la imagen se ve completa (sin recorte) y al tocarla se abre a pantalla completa (`ImagenAmpliable`); se cierra con click, X o Escape

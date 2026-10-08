@@ -1,5 +1,7 @@
 import Link from "next/link";
 import LoteMedia from "@/components/LoteMedia";
+import ImagenAmpliable from "@/components/ImagenAmpliable";
+import { esVideo } from "@/lib/media";
 import { notFound } from "next/navigation";
 import { getLoteById, formatPrecio, ESTADO_CONFIG } from "@/lib/lotes";
 
@@ -43,13 +45,17 @@ export default async function LotePage(props: PageProps<"/subasta/[id]">) {
             className="relative w-full rounded-2xl overflow-hidden mb-8"
             style={{ aspectRatio: "4/3", backgroundColor: "#0d0d0d" }}
           >
-            <LoteMedia
-              src={lote.imagen}
-              alt={lote.nombre}
-              sizes="(max-width: 768px) 100vw, 672px"
-              controls
-              priority
-            />
+            {esVideo(lote.imagen) ? (
+              <LoteMedia
+                src={lote.imagen}
+                alt={lote.nombre}
+                sizes="(max-width: 768px) 100vw, 672px"
+                controls
+                priority
+              />
+            ) : (
+              <ImagenAmpliable src={lote.imagen} alt={lote.nombre} sizes="(max-width: 768px) 100vw, 672px" />
+            )}
           </div>
         )}
 
