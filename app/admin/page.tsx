@@ -44,8 +44,6 @@ export default async function AdminPage() {
         </div>
       ) : (
         <ListaLotes
-          // Remonta la lista si cambia el conjunto de lotes (p. ej. al eliminar uno).
-          key={lotes.map(l => l.id).join(",")}
           filas={lotes.map(lote => {
             const cfg = ESTADO_CONFIG[lote.estado];
             return {

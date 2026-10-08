@@ -73,7 +73,6 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
   const galeriaRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
-    numero_lote: initial.numero_lote ?? "",
     nombre: initial.nombre ?? "",
     descripcion: initial.descripcion ?? "",
     imagen: initial.imagen ?? "",
@@ -167,7 +166,6 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
     setSaving(true);
 
     const payload = {
-      numero_lote: form.numero_lote.trim(),
       nombre: form.nombre.trim(),
       descripcion: form.descripcion.trim(),
       imagen: form.imagen,
@@ -200,29 +198,17 @@ export default function LoteForm({ initial = {}, action, id }: LoteFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-xl">
-      {/* Lote number + name */}
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Número de lote *">
-          <input
-            type="text"
-            value={form.numero_lote}
-            onChange={e => set("numero_lote", e.target.value)}
-            required
-            placeholder="01"
-            className="input-field w-full px-4 py-3 rounded-lg text-sm"
-          />
-        </Field>
-        <Field label="Nombre *">
-          <input
-            type="text"
-            value={form.nombre}
-            onChange={e => set("nombre", e.target.value)}
-            required
-            placeholder="Reloj de colección"
-            className="input-field w-full px-4 py-3 rounded-lg text-sm"
-          />
-        </Field>
-      </div>
+      {/* Nombre (el número de lote se asigna solo según la posición en la lista) */}
+      <Field label="Nombre *">
+        <input
+          type="text"
+          value={form.nombre}
+          onChange={e => set("nombre", e.target.value)}
+          required
+          placeholder="Reloj de colección"
+          className="input-field w-full px-4 py-3 rounded-lg text-sm"
+        />
+      </Field>
 
       {/* Description */}
       <Field label="Descripción">

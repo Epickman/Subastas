@@ -17,10 +17,9 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/lotes/[id]">
     if (!(await esAdmin())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     const { id } = await ctx.params;
     const body = await request.json();
-    const { numero_lote, nombre, descripcion, imagen, galeria, estado, ganador, precio_final, precio_base } = body;
+    const { nombre, descripcion, imagen, galeria, estado, ganador, precio_final, precio_base } = body;
 
     const lote = await updateLote(Number(id), {
-      ...(numero_lote !== undefined && { numero_lote: String(numero_lote) }),
       ...(nombre !== undefined && { nombre: String(nombre) }),
       ...(descripcion !== undefined && { descripcion: String(descripcion) }),
       ...(imagen !== undefined && { imagen: String(imagen) }),

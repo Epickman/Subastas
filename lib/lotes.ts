@@ -18,8 +18,8 @@ export interface Lote {
   updated_at: string;
 }
 
+// numero_lote no se edita: es la posición del lote en la lista.
 export type LoteInput = {
-  numero_lote: string;
   nombre: string;
   descripcion: string;
   imagen: string;
@@ -31,7 +31,7 @@ export type LoteInput = {
 };
 
 const COLUMNAS: (keyof LoteInput)[] = [
-  'numero_lote', 'nombre', 'descripcion', 'imagen', 'estado', 'ganador', 'precio_final', 'precio_base', 'galeria',
+  'nombre', 'descripcion', 'imagen', 'estado', 'ganador', 'precio_final', 'precio_base', 'galeria',
 ];
 
 // galeria es JSONB: se manda como texto JSON.
@@ -67,11 +67,12 @@ export async function getAllLotes(): Promise<Lote[]> {
   return rows.map(toLote);
 }
 
-// Guarda el orden de la lista: el primer id queda en la posición 1.
+// Guarda el orden de la lista: el primer id queda en la posición 1 y su
+// número de lote pasa a ser esa posición.
 export async function reordenarLotes(ids: number[]): Promise<void> {
   const db = await getDb();
   await db.query(
-    `UPDATE lotes SET orden = t.pos
+    `UPDATE lotes SET orden = t.pos, numero_lote = t.pos::text
      FROM unnest($1::int[]) WITH ORDINALITY AS t(id, pos)
      WHERE lotes.id = t.id`,
     [ids],
@@ -88,8 +89,10 @@ export async function getLoteById(id: number): Promise<Lote | undefined> {
 export async function createLote(data: LoteInput): Promise<Lote> {
   const db = await getDb();
   const rows = await db.query(
-    `INSERT INTO lotes (numero_lote, nombre, descripcion, imagen, estado, ganador, precio_final, precio_base, galeria)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+    // El lote nuevo va al final: posición y número = último + 1.
+    `WITH sig AS (SELECT COALESCE(MAX(orden), COUNT(*)) + 1 AS pos FROM lotes)
+     INSERT INTO lotes (nombre, descripcion, imagen, estado, ganador, precio_final, precio_base, galeria, orden, numero_lote)
+     SELECT $1, $2, $3, $4, $5, $6, $7, $8, pos, pos::text FROM sig RETURNING *`,
     COLUMNAS.map((c) => valor(data, c)),
   );
   return toLote(rows[0]);
@@ -112,6 +115,12 @@ export async function deleteLote(id: number): Promise<void> {
   if (!Number.isInteger(id)) return;
   const db = await getDb();
   await db.query('DELETE FROM lotes WHERE id = $1', [id]);
+  // Los que estaban después suben un lugar, así los números quedan 1, 2, 3...
+  await db.query(`
+    UPDATE lotes SET orden = t.pos, numero_lote = t.pos::text
+    FROM (SELECT id, row_number() OVER (ORDER BY orden ASC NULLS LAST, id) AS pos FROM lotes) AS t
+    WHERE lotes.id = t.id
+  `);
 }
 
 export function formatPrecio(precio: number): string {

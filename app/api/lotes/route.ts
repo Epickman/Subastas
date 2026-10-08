@@ -18,14 +18,13 @@ export async function POST(request: Request) {
   try {
     if (!(await esAdmin())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     const body = await request.json();
-    const { numero_lote, nombre, descripcion, imagen, galeria, estado, ganador, precio_final, precio_base } = body;
+    const { nombre, descripcion, imagen, galeria, estado, ganador, precio_final, precio_base } = body;
 
-    if (!numero_lote || !nombre || !estado) {
+    if (!nombre || !estado) {
       return NextResponse.json({ error: "Campos requeridos faltantes" }, { status: 400 });
     }
 
     const lote = await createLote({
-      numero_lote: String(numero_lote),
       nombre: String(nombre),
       descripcion: String(descripcion ?? ""),
       imagen: String(imagen ?? ""),

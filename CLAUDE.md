@@ -63,7 +63,7 @@ proxy.ts                  → Middleware de auth para rutas /admin/*
 | Campo | Tipo | Notas |
 |---|---|---|
 | id | SERIAL PK | |
-| numero_lote | TEXT NOT NULL | Ordena como entero si es posible |
+| numero_lote | TEXT NOT NULL | Automático = posición en la lista (al crear, reordenar o eliminar); no se edita en el form |
 | nombre | TEXT NOT NULL | |
 | descripcion | TEXT | Default '' |
 | imagen | TEXT | URL pública de Vercel Blob (imagen o video, según extensión) |
@@ -173,5 +173,6 @@ Crear un `.env.local` con valores seguros antes de poner en producción.
 
 - En el detalle del lote la imagen se ve completa (sin recorte) y al tocarla se abre a pantalla completa; se cierra con click, X o Escape
 - Galería por lote: columna `galeria` (JSONB), sección "Más imágenes o videos" en el form admin y `GaleriaLote` en el detalle (miniaturas, flechas, teclado)
-- Reordenar lotes arrastrando en `/admin` (columna `orden`); el número de lote no cambia
+- Reordenar lotes arrastrando en `/admin` (columna `orden`); el número de lote se recalcula según la posición
+- El drag escucha `pointermove`/`pointerup` en window: al reordenar, React mueve la fila y el navegador suelta la captura del puntero de la manija
 - Seguridad: las rutas de API que modifican lotes ahora exigen sesión de admin (antes eran públicas)
